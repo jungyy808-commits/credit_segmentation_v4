@@ -1,0 +1,109 @@
+{
+  "rare_fe_candidates": [
+    {
+      "feature_name": "v4_last_use_gap_CA",
+      "base_columns": ["최종이용일자_CA"],
+      "formula": "일단위 기준 today_date - 최종이용일자_CA (YYYYMMDD → 날짜 변환 후 차이)",
+      "description_kr": "체크/CA 영역의 마지막 이용 이후 얼마나 오랜 기간이 지났는지 나타내는 최근성 지표. Segment0/1은 최종 이용일이 매우 과거에 위치하는 경향이 강하므로, 이 값이 클수록 희귀 세그먼트일 가능성이 높음.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_last_use_gap_card_all",
+      "base_columns": ["최종이용일자_일시불", "최종이용일자_신판", "최종이용일자_할부", "최종이용일자_기본"],
+      "formula": "해당 4개 최종이용일자 중 가장 최근(최댓값)을 last_use_all로 두고, today_date - last_use_all",
+      "description_kr": "신용카드 전체(일시불/신판/할부/기본) 관점에서 마지막으로 카드를 쓴 이후 경과일. Segment0/1은 전반적으로 사용이 중단된 패턴이어서, 이 gap이 크면 dormant 고객일 가능성이 크다.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_first_to_last_gap",
+      "base_columns": ["rv최초시작후경과일", "최종이용일자_기본"],
+      "formula": "계좌/회원 최초 시작일과 최종이용일자_기본을 날짜로 변환 후, 두 시점 사이의 기간(일수 또는 개월수)",
+      "description_kr": "가입 후 실제 카드 사용이 이루어진 기간의 길이. Segment0/1은 초기 일정 기간 사용 후 장기간 미사용이 많을 수 있어, 전체 가입 기간 대비 실제 이용 기간이 짧은 패턴을 포착하는 데 유용함.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_limit_to_usage_ratio_R12M",
+      "base_columns": ["카드이용한도금액", "이용금액_일시불_R12M", "이용금액_할부_R12M", "이용금액_CA_R12M"],
+      "formula": "(이용금액_일시불_R12M + 이용금액_할부_R12M + 이용금액_CA_R12M) / (카드이용한도금액 + 1e-6)",
+      "description_kr": "최근 12개월 동안 실제 사용한 금액을 카드 한도로 나눈 비율. Segment0/1은 한도는 존재하지만 사용이 거의 없어 이 비율이 극단적으로 낮은 '슬리핑 카드' 패턴을 보일 가능성이 크다.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_balance_to_usage_ratio",
+      "base_columns": ["평잔_6M", "이용금액_일시불_R6M", "이용금액_할부_R6M", "이용금액_CA_R6M"],
+      "formula": "평잔_6M / (이용금액_일시불_R6M + 이용금액_할부_R6M + 이용금액_CA_R6M + 1e-6)",
+      "description_kr": "6개월 평균 잔액 대비 실제 카드 이용금액 비율. 잔액은 높은데 소비가 거의 없으면 값이 커지며, 이는 계좌 잔고만 유지하는 비활동 고객(희귀 세그먼트)의 특징을 반영함.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_bill_drop_R6_to_R3",
+      "base_columns": ["청구금액_R6M", "청구금액_R3M"],
+      "formula": "(청구금액_R6M - 청구금액_R3M) / (청구금액_R6M + 1e-6)",
+      "description_kr": "6M → 3M 구간에서 청구금액이 얼마나 감소했는지를 비율로 나타낸 값. Segment0/1은 최근 3개월 내 청구가 거의 없거나 급감한 패턴을 보일 수 있어, 청구 금액 급감 여부를 포착하기 위한 지표.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_usage_volatility_R3_R6_R12",
+      "base_columns": ["이용금액_일시불_R3M", "이용금액_일시불_R6M", "이용금액_일시불_R12M"],
+      "formula": "np.std([이용금액_일시불_R3M, 이용금액_일시불_R6M, 이용금액_일시불_R12M])",
+      "description_kr": "3/6/12개월 구간의 일시불 이용금액 변동성. 특정 구간에서만 한번 크게 사용하거나 완전히 0에 가깝게 유지되는지 등, 불규칙/스파이크형 소비 패턴을 포착하기 위한 지표.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_recent_zero_usage_flag",
+      "base_columns": ["이용금액_일시불_R3M", "이용금액_할부_R3M", "이용금액_CA_R3M"],
+      "formula": "int((이용금액_일시불_R3M + 이용금액_할부_R3M + 이용금액_CA_R3M) == 0)",
+      "description_kr": "최근 3개월간 일시불/할부/CA 이용이 전혀 없는 고객을 1로 표시하는 이진 플래그. Segment0/1의 극저활동 패턴을 직접적으로 반영하는 단순하지만 강력한 변수.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_long_inactive_high_limit_flag",
+      "base_columns": ["카드이용한도금액", "이용금액_일시불_R12M", "이용금액_할부_R12M", "이용금액_CA_R12M", "최종이용일자_기본"],
+      "formula": "int((카드이용한도금액 > high_limit_threshold) & ((이용금액_일시불_R12M + 이용금액_할부_R12M + 이용금액_CA_R12M) < low_usage_threshold) & (today_date - 최종이용일자_기본 > long_inactive_days))",
+      "description_kr": "한도는 높은데 최근 12개월 이용이 거의 없고, 최종 이용일도 오래된 고객을 1로 태깅하는 플래그. '슬리핑 하이리밋 고객'을 포착하기 위한 변수로, 희귀 세그먼트의 핵심 시나리오를 반영함.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_point_activity_intensity",
+      "base_columns": ["포인트_적립포인트_R12M", "포인트_이용포인트_R12M", "이용금액_일시불_R12M", "이용금액_할부_R12M"],
+      "formula": "(포인트_적립포인트_R12M + 포인트_이용포인트_R12M) / (이용금액_일시불_R12M + 이용금액_할부_R12M + 1e-6)",
+      "description_kr": "포인트 적립/사용 규모를 실제 카드 이용금액으로 나눈 비율. 카드 사용을 라이프스타일 전반(적립·혜택 활용)에 얼마나 통합해서 쓰는지를 나타내며, 희귀 세그먼트(거의 사용 안 하는 고객)는 일반적으로 매우 낮은 값을 가질 가능성이 크다.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_travel_mileage_activity",
+      "base_columns": ["마일_적립포인트_R12M", "마일_이용포인트_R12M", "이용금액_일시불_R12M"],
+      "formula": "(마일_적립포인트_R12M + 마일_이용포인트_R12M) / (이용금액_일시불_R12M + 1e-6)",
+      "description_kr": "여행/항공 마일리지 관련 활동 정도를 나타내는 비율. 정상 세그먼트(4,3)는 일정 수준의 항공 마일리지 활동이 나타나지만, 희귀 세그먼트는 거의 없거나 패턴이 크게 다를 수 있음.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_lifestyle_auto_payment_flag",
+      "base_columns": ["납부_통신비이용금액", "교통_주유이용금액"],
+      "formula": "int((납부_통신비이용금액 == 0) & (교통_주유이용금액 == 0))",
+      "description_kr": "통신비 자동납부나 교통/주유와 같이 일상 고정비를 카드로 결제하지 않는 고객을 1로 표시. 카드를 라이프스타일 중심으로 쓰지 않는 비활성형 고객(희귀 세그먼트)의 특징을 반영.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_arrears_recent_flag",
+      "base_columns": ["연체일수_최근"],
+      "formula": "int(연체일수_최근 > arrears_days_threshold)",
+      "description_kr": "최근 연체일수가 일정 기준 이상인 고객을 1로 태깅. 일부 희귀 세그먼트는 과거 연체 후 활동이 급감하거나 카드 사용을 정리한 패턴을 보일 수 있어, 리스크 관점에서 rare 그룹 식별에 도움을 줄 수 있음.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_cardloan_cleanup_flag",
+      "base_columns": ["카드론이용금액_누적", "잔액_카드론_B0M", "최종이용일자_카드론"],
+      "formula": "int((카드론이용금액_누적 > loan_used_threshold) & (잔액_카드론_B0M == 0) & (today_date - 최종이용일자_카드론 > loan_cleanup_days))",
+      "description_kr": "과거 카드론을 크게 사용했지만 현재 잔액은 0이고, 카드론 이용도 오래전에 끝난 고객을 1로 표시. '한 번 크게 쓰고 완전히 정리한 후 비활성화된 고객' 패턴을 포착하기 위한 변수.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    },
+    {
+      "feature_name": "v4_online_offline_usage_ratio_R6M",
+      "base_columns": ["이용금액_온라인_R6M", "이용금액_오프라인_R6M"],
+      "formula": "이용금액_온라인_R6M / (이용금액_온라인_R6M + 이용금액_오프라인_R6M + 1e-6)",
+      "description_kr": "최근 6개월 동안 온라인 vs 오프라인 이용 비중. 정상 세그먼트는 어느 정도 균형 있는 비율이 나타나는 반면, 희귀 세그먼트는 온라인/오프라인 모두 0이거나 매우 일방적인 패턴을 보일 수 있음.",
+      "target_segments": ["0", "1", "rare_vs_others"]
+    }
+  ]
+}
