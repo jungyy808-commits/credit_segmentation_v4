@@ -1,0 +1,20 @@
+# 데이터 파일 (원본 / 대용량)
+data/
+*.parquet
+
+# 파이썬/노트북 잡파일
+__pycache__/
+.ipynb_checkpoints/
+*.log
+
+# 가상환경
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS / IDE 잡파일
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
